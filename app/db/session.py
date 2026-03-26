@@ -29,4 +29,4 @@ db_manager = DatabaseManager()
 async def get_db():
     if db_manager.db is None:
         raise RuntimeError("Database not initialized")
-    yield db_manager.db
+    return db_manager.db
