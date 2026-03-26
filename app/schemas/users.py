@@ -26,3 +26,4 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True # Allows using 'id' instead of '_id' in code
+        # arbitrary_types_allowed = True

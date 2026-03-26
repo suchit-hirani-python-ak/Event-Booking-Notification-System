@@ -1,6 +1,9 @@
-import jwt
+from app.core.config import settings
 from pymongo.asynchronous.database import AsyncDatabase
 from bson import ObjectId
+
+from app.exception.error import Forbidden
+from app.schemas.users import UserResponse
 
 
 class UserRepository:
@@ -18,4 +21,6 @@ class UserRepository:
     async def find_by_id(self):
         return await self.collection.find_one({"_id":str(ObjectId)})
     
-    
+    async def admin_data(self,user:dict):
+        return await self.collection.find_one(user)
+        

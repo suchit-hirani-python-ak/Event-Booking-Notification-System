@@ -7,8 +7,8 @@ from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from app.exception.error import BadRequest, Forbidden, NotFound, Unauthorized
 from app.repositories.user_repo import UserRepository
-from app.schemas.users import UserCreate, UserRole
-
+from app.schemas.users import UserCreate, UserResponse, UserRole
+from app.utils.celery import send_welcome_email_task
 class UserService:
     def __init__(self, db: AsyncDatabase):
         self.repo = UserRepository(db)
@@ -18,6 +18,7 @@ class UserService:
         if await self.repo.find_by_email(user_in.email):
             raise BadRequest("User already exists")
 
+        send_welcome_email_task.delay(user_in.email) # type: ignore
         # 2. Convert to dict and HASH the password
         user_dict = user_in.model_dump()
         user_dict["role"] = UserRole.USER.value
@@ -25,7 +26,8 @@ class UserService:
         
         # 3. Add timestamps
         user_dict["created_at"] = datetime.now().isoformat()
-
+        
+        
         # 4. Save to MongoDB
         return await self.repo.create_user(user_dict)
 
@@ -64,7 +66,6 @@ class UserService:
             return tokens
         
     async def refresh_token(self, refresh_token: str):
-    # 1. Clean the token string properly 
         try:
             payload = jwt.decode(
                 refresh_token, 
@@ -79,15 +80,30 @@ class UserService:
         if payload.get("type") != "refresh":
             raise Unauthorized("This is not a refresh token")
 
-        # 2. Extract and clean the email from the payload
         email = payload.get("sub")
         if not email:
             raise Unauthorized("Token payload missing email")
 
-        # 2. Change get_by_id to get_by_email
         user = await self.repo.find_by_email(email)
         if not user:
-            # Debugging tip: Print what was actually found in the token
             raise NotFound("user not found")
                 
         return generate_tokens(user)
+    
+
+    # async def register_admin(self, user_in: UserCreate, secret_name: str, secret_pass: str):
+    #     # 1. Verify against .env secrets
+    #     if secret_name != settings.admin_name or secret_pass != settings.admin_pass:
+    #         raise Forbidden()
+
+    #     # 2. Check if exists
+    #     if await self.repo.find_by_email(user_in.email):
+    #         raise BadRequest("email already exists")
+
+    #     # 3. Force Admin Role
+    #     user_dict = user_in.model_dump()
+    #     user_dict["role"] = UserRole.ADMIN.value
+    #     user_dict["password"] = hash_password(user_in.password)
+    #     user_dict["created_at"] = datetime.now().isoformat()
+
+    #     return await self.repo.create_user(user_dict)

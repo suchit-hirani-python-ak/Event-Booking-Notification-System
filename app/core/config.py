@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     access_expire_in_minutes: int 
     refresh_expire_in_days: int 
     encription: str
+    mail_username: str
+    mail_password: SecretStr
+    mail_from: str
+    mail_port: int
+    admin_name: str
+    admin_pass: str
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"
