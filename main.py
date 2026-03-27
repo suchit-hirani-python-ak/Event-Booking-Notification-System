@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.db.session import db_manager,get_db
-from app.api import user_route
+from app.api import event_all_route, event_route, user_route
 from app.exception.error import BaseException
 import uvicorn
 
@@ -17,7 +17,9 @@ async def lifespan(app: FastAPI):
 
 # 2. Pass the lifespan to the FastAPI app
 app = FastAPI(lifespan=lifespan)
-app.include_router(user_route.router)
+app.include_router(user_route.router,prefix="/auth",tags=["Authentication"])
+app.include_router(event_route.router,prefix="/events",tags=["event"])
+app.include_router(event_all_route.router,prefix="/event",tags=["All Events"])
 @app.get("/")
 def server():
     return "server is running"

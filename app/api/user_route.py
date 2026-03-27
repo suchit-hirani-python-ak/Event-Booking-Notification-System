@@ -2,13 +2,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Header, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from app.db.session import get_db
-from app.core.config import settings
 from app.schemas.users import UserCreate, UserResponse
-from app.repositories.user_repo import UserRepository
 from app.schemas.tokens import Token
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/users")
+router = APIRouter()
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_in: UserCreate, db = Depends(get_db)):
