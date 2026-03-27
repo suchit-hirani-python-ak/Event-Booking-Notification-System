@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, BeforeValidator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
 from datetime import datetime
 from typing import Annotated
 
