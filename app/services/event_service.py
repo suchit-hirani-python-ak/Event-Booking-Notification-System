@@ -32,9 +32,9 @@ class EventService:
     async def event_by_id(self, id: str):
         return await self.repo.get_by_id(id)
     
-    async def update_id(self, event_id: str, payload: EventRequest, user: TokenResponse):
+    async def update_id(self, id: str, payload: EventRequest, user: TokenResponse):
         
-        existing_event = await self.repo.get_by_id(event_id)
+        existing_event = await self.repo.get_by_id(id)
         if not existing_event:
             raise NotFound("event not found")
         if payload.available_slots > payload.total_slots:
@@ -49,4 +49,21 @@ class EventService:
         update_dict = payload.model_dump()
         update_dict["updated_at"] = datetime.now().isoformat()
 
-        return await self.repo.update_by_id(event_id, update_dict)
+        return await self.repo.update_by_id(id, update_dict)
+    
+    async def delete_id(self, id: str, user: TokenResponse):
+        
+        existing_event = await self.repo.get_by_id(id)
+        print(existing_event)
+        if not existing_event:
+            raise NotFound("event not found")
+        
+        if user.role != "admin":
+            raise Forbidden()
+        
+        if (existing_event.get("created_by")) == user.id:
+             raise Forbidden("You can only edit your own events")
+
+
+
+        return await self.repo.delete_by_id(id)

@@ -26,3 +26,12 @@ async def update_event(
     current_user: Annotated[TokenResponse, Depends(allow_admin)]
 ):
     return await EventService(db).update_id(id, payload, current_user)
+
+@router.delete("/{id}")
+async def delete_event(
+    event_id: str,
+    db: Annotated[AsyncDatabase,Depends(get_db)],
+    current_user: Annotated[TokenResponse, Depends(allow_admin)]
+):
+    delete = await EventService(db).delete_id(event_id, current_user)
+    return f"deleted successfully"
