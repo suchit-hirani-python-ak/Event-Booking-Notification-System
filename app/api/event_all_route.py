@@ -1,13 +1,9 @@
 from typing import Annotated, List
 from pymongo.asynchronous.database import AsyncDatabase
 from app.db.session import get_db
-from app.schemas.books import BookingResponse
 from app.schemas.event import EventAllResponse, EventResponse
-from app.schemas.tokens import TokenResponse
-from app.services.booking_service import BookingService
 from app.services.event_service import EventService
 from fastapi import APIRouter, Depends
-from app.dependencies.depandency import get_current_user
 
 router = APIRouter()
 
@@ -28,4 +24,3 @@ async def register_booking(db:Annotated[AsyncDatabase,Depends(get_db)],
                      id: str,
                      token:Annotated[TokenResponse,Depends(get_current_user)]):
     return await BookingService(db).register_booking(id,token)
-
