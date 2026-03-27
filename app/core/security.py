@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 import redis.asyncio as redis
 from app.core.config import settings
-from app.schemas.users import UserCreate
+from app.schemas.users import UserCreate, UserResponse
 
 redis_client = redis.from_url(settings.redis_url, decode_responses = True)
 
@@ -30,9 +30,12 @@ def refresh_access_token(data: dict):
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode,settings.refresh_token.get_secret_value(),algorithm=settings.algorithm)
 
-def generate_tokens(user:UserCreate):
+def generate_tokens(user:dict):
     access_token = create_access_token(
-        data={"sub": user["email"]}
+        data={"sub": user.get("email"),   
+        "id": str(user.get("_id")),  
+        "role": user.get("role"),    
+        "type": "access",}
     )
     refresh_token = refresh_access_token(
         data={"sub":user["email"]}

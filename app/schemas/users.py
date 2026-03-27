@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from datetime import datetime
 from typing import Annotated
 from enum import Enum
@@ -23,7 +23,4 @@ class UserResponse(BaseModel):
     role: UserRole=UserRole.USER 
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True # Allows using 'id' instead of '_id' in code
-        # arbitrary_types_allowed = True
+    model_config = ConfigDict(from_attributes=True,populate_by_name=True)

@@ -6,7 +6,7 @@ from app.core.security import generate_tokens, hash_password, redis_client, veri
 from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from app.exception.error import BadRequest, Forbidden, NotFound, Unauthorized
-from app.repositories.user_repo import UserRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.users import UserCreate, UserResponse, UserRole
 from app.utils.celery import send_welcome_email_task
 class UserService:
