@@ -10,7 +10,17 @@ router = APIRouter()
 @router.get("",response_model=List[EventResponse])
 async def all(db:Annotated[AsyncDatabase,Depends(get_db)]):
     return await EventService(db).all_user_event()
+
+@router.get("/me",response_model=List[BookingResponse])
+async def get_my_bookings(db:Annotated[AsyncDatabase,Depends(get_db)], user: Annotated[TokenResponse,Depends(get_current_user)]):
+    return await BookingService(db).all_booking(user)
     
 @router.get("/{id}",response_model=EventAllResponse)
 async def by_id(db:Annotated[AsyncDatabase,Depends(get_db)],id: str):
     return await EventService(db).event_by_id(id)
+
+@router.post("/{id}",response_model=BookingResponse)
+async def register_booking(db:Annotated[AsyncDatabase,Depends(get_db)],
+                     id: str,
+                     token:Annotated[TokenResponse,Depends(get_current_user)]):
+    return await BookingService(db).register_booking(id,token)

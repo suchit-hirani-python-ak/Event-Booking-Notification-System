@@ -16,7 +16,7 @@ def get_current_user(token: str=Depends(oauth2_scheme)) -> TokenResponse:
         
 
 class RoleChecker:
-    def __init__(self, allowed_roles: str):
+    def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: TokenResponse = Depends(get_current_user)):
@@ -24,4 +24,5 @@ class RoleChecker:
             raise Forbidden()
         return user
 
-allow_admin = RoleChecker("admin")
+allow_admin = RoleChecker(["admin"])
+allow_all = RoleChecker(["admin","user"])
