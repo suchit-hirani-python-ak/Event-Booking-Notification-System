@@ -7,6 +7,7 @@ from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from app.exception.error import BadRequest, Forbidden, NotFound, Unauthorized
 from app.repositories.user_repository import UserRepository
+from app.schemas.tokens import Token, TokenResponse
 from app.schemas.users import UserCreate, UserResponse, UserRole
 from app.utils.celery import send_welcome_email_task
 class UserService:
@@ -22,7 +23,7 @@ class UserService:
         # 2. Convert to dict and HASH the password
         user_dict = user_in.model_dump()
         user_dict["role"] = UserRole.USER.value
-        user_dict["password"] = hash_password(user_in.password) # <--- CRITICAL STEP
+        user_dict["password"] = hash_password(user_in.password)
         
         # 3. Add timestamps
         user_dict["created_at"] = datetime.now().isoformat()
@@ -91,19 +92,31 @@ class UserService:
         return generate_tokens(user)
     
 
-    # async def register_admin(self, user_in: UserCreate, secret_name: str, secret_pass: str):
-    #     # 1. Verify against .env secrets
-    #     if secret_name != settings.admin_name or secret_pass != settings.admin_pass:
-    #         raise Forbidden()
+    async def register_admin(self, user_in: UserCreate, secret_name: str, secret_pass: str):
+        # 1. Verify against .env secrets
+        if secret_name != settings.admin_name or secret_pass != settings.admin_pass:
+            raise Forbidden()
 
-    #     # 2. Check if exists
-    #     if await self.repo.find_by_email(user_in.email):
-    #         raise BadRequest("email already exists")
+        # 2. Check if exists
+        if await self.repo.find_by_email(user_in.email):
+            raise BadRequest("email already exists")
+        send_welcome_email_task.delay(user_in.email) # type: ignore
+        # 3. Force Admin Role
+        user_dict = user_in.model_dump()
+        user_dict["role"] = UserRole.ADMIN.value
+        user_dict["password"] = hash_password(user_in.password)
+        user_dict["created_at"] = datetime.now().isoformat()
 
-    #     # 3. Force Admin Role
-    #     user_dict = user_in.model_dump()
-    #     user_dict["role"] = UserRole.ADMIN.value
-    #     user_dict["password"] = hash_password(user_in.password)
-    #     user_dict["created_at"] = datetime.now().isoformat()
+        return await self.repo.create_user(user_dict)
 
-    #     return await self.repo.create_user(user_dict)
+    async def delete_user_account(self, token: TokenResponse):
+        # 1. You MUST await the database call
+        was_deleted = await self.repo.remove_user(token.id)
+        
+        # 2. Check the result
+        if not was_deleted:
+            # 3. You MUST raise the exception to stop execution
+            raise NotFound("User not found or already deleted")
+        
+        # This will only be reached if was_deleted is True
+        return {"message": "User successfully deleted"}

@@ -5,18 +5,33 @@ from fastapi.responses import JSONResponse
 from app.db.session import db_manager,get_db
 from app.api import event_all_route, event_route, user_route
 from app.exception.error import BaseException
+from app.middleware.request_logs import Middleware
 import uvicorn
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to MongoDB
+    # 1. Startup: Connect to MongoDB
     await db_manager.connect_to_mongo()
+    app.state.db = db_manager.db 
     yield
-    # Shutdown: Close connection
+    
+    # 3. Shutdown: Close connection
     await db_manager.close_mongo_connection()
+
+
 
 # 2. Pass the lifespan to the FastAPI app
 app = FastAPI(lifespan=lifespan)
+
+# 1. Initialize your middleware class
+mw = Middleware()
+
+# 2. Register the specific method as a middleware function
+@app.middleware("http")
+async def logging_wrapper(request: Request, call_next):
+    return await mw.log_requests_middleware(request, call_next)
+
 app.include_router(user_route.router,prefix="/auth",tags=["Authentication"])
 app.include_router(event_route.router,prefix="/events",tags=["event"])
 app.include_router(event_all_route.router,prefix="/booking",tags=["Bookings"])
