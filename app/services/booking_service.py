@@ -2,18 +2,18 @@ import asyncio
 from bson import ObjectId
 from datetime import datetime
 from pymongo.asynchronous.database import AsyncDatabase
-from redis import Redis
+from redis.asyncio import Redis
 from app.exception.error import BadRequest
 from app.repositories.booking_repository import BookingRepository
 from app.repositories.notification_repository import NotificationRepository
 from app.schemas.tokens import TokenResponse
 from app.utils.celery import send_booking_notification_task
+from app.utils.redishelper import RedisHelper
 
 class BookingService:
     def __init__(self, db: AsyncDatabase, redis: Redis):
         self.repo = BookingRepository(db)
-        self.notification_repo = NotificationRepository(db) # Added repo
-        self.redis = redis
+        self.cache = RedisHelper(redis)
 
     async def register_booking(self, event_id: str, user: TokenResponse):
         # 1. Double-booking check
@@ -27,7 +27,7 @@ class BookingService:
             raise BadRequest("Event is full or does not exist")
         
         # 3. Cache Invalidation (CRITICAL)
-        await self.redis.delete(f"event:{event_id}")
+        await self.cache.delete_cache(f"event:{event_id}")
 
         # 4. Create Booking Document
         booking_data = {
@@ -44,7 +44,7 @@ class BookingService:
 
         
         # Use asyncio.create_task to run the retry logic in the background
-        send_booking_notification_task.delay(user.email, booking_id)
+        send_booking_notification_task.delay(user.email, booking_id) #type: ignore
 
 
         # 6. Prepare Return Data

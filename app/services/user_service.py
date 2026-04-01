@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.core.config import settings
 import jwt
 from pymongo.asynchronous.database import AsyncDatabase
@@ -105,7 +105,7 @@ class UserService:
         user_dict = user_in.model_dump()
         user_dict["role"] = UserRole.ADMIN.value
         user_dict["password"] = hash_password(user_in.password)
-        user_dict["created_at"] = datetime.now().isoformat()
+        user_dict["created_at"] = datetime.now() + timedelta(hours=5,minutes=30)
 
         return await self.repo.create_user(user_dict)
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.db.session import db_manager,get_db
-from app.api import event_all_route, event_route, user_route
+from app.api import booking_route, event_route, user_route
 from app.exception.error import BaseException
 from app.middleware.request_logs import Middleware
 import uvicorn
@@ -34,7 +34,7 @@ async def logging_wrapper(request: Request, call_next):
 
 app.include_router(user_route.router,prefix="/auth",tags=["Authentication"])
 app.include_router(event_route.router,prefix="/events",tags=["event"])
-app.include_router(event_all_route.router,prefix="/booking",tags=["Bookings"])
+app.include_router(booking_route.router,prefix="/booking",tags=["Bookings"])
 
 @app.get("/")
 def server():
@@ -52,4 +52,4 @@ async def global_app_exception_handler(request: Request, exc: BaseException):
     )
 
 if __name__ == "__main__":
-    uvicorn.run("main:app",port=8001,host="0.0.0.0",reload=True)
+    uvicorn.run("main:app",port=8000,host="0.0.0.0",reload=True)
