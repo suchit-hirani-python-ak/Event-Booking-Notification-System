@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -20,7 +20,7 @@ class NotificationRepository:
             },
             # setOnInsert only runs the very first time the record is created
             "$setOnInsert": {
-                "created_at": datetime.now().isoformat()
+                "created_at": datetime.now() + timedelta(hours=5, minutes=30)
             }
         }
 
