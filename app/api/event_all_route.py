@@ -9,6 +9,7 @@ from app.services.event_service import EventService
 from fastapi import APIRouter, Depends
 from app.dependencies.depandency import get_current_user
 
+
 router = APIRouter()
 
 @router.get("",response_model=List[EventResponse])

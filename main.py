@@ -20,6 +20,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(user_route.router,prefix="/auth",tags=["Authentication"])
 app.include_router(event_route.router,prefix="/events",tags=["event"])
 app.include_router(event_all_route.router,prefix="/booking",tags=["Bookings"])
+
 @app.get("/")
 def server():
     return "server is running"
