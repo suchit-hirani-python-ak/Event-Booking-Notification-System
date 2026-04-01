@@ -11,14 +11,13 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     USER = "user"
 
-# --- Schema for Incoming Data (Registration) ---
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
 
 class UserResponse(BaseModel):
-    id: PyObjectId = Field(alias="_id") # Maps MongoDB _id to id
+    id: PyObjectId = Field(alias="_id")
     email: EmailStr
     role: UserRole=UserRole.USER 
     created_at: datetime

@@ -4,6 +4,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.db.session import get_db
 from app.schemas.users import UserCreate, UserResponse
 from app.schemas.tokens import Token
+from app.dependencies.depandency import get_current_user
+from app.core.config import settings
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -27,12 +29,19 @@ async def login(response:Response,
 async def refresh(refresh_token:str,db = Depends(get_db)):
     return await UserService(db).refresh_token(refresh_token)
 
-# @router.post("/setup-root")
-# async def setup_admin(
-#     user: UserCreate,
-#     db = Depends(get_db),
-#     x_admin_user: str = Header(settings.admin_name), # Passes 'x-admin-user' from request headers
-#     x_admin_pass: str = Header(settings.admin_pass)
-# ):
-#     service = UserService(db)
-#     return await service.register_admin(user, x_admin_user, x_admin_pass)
+@router.post("/setup-root",response_model=UserResponse)
+async def setup_admin(
+    user: UserCreate,
+    db = Depends(get_db),
+    x_admin_user: str = Header(settings.admin_name),
+    x_admin_pass: str = Header(settings.admin_pass)
+):
+    service = UserService(db)
+    return await service.register_admin(user, x_admin_user, x_admin_pass)
+
+@router.delete("/delete")
+async def delete(
+    token=Depends(get_current_user),     
+    db=Depends(get_db),
+):
+    return await UserService(db).delete_user_account(token)

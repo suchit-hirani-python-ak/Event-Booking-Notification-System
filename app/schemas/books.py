@@ -13,7 +13,7 @@ class BookingResponse(BaseModel):
     user_id: PyObjectId
     event_id: PyObjectId
     status: str= "confirmed"
-    created: datetime
+    created_at: datetime
     
     model_config = ConfigDict(
         from_attributes=True,

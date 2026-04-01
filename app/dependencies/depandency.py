@@ -1,7 +1,7 @@
 import jwt
 from fastapi import Depends, HTTPException
 from app.core.config import settings
-from app.core.security import oauth2_scheme
+from app.core.security import oauth2_scheme,redis_client
 from app.exception.error import Forbidden,Unauthorized
 from app.schemas.tokens import TokenResponse
 from app.schemas.users import UserCreate, UserResponse
@@ -26,3 +26,6 @@ class RoleChecker:
 
 allow_admin = RoleChecker(["admin"])
 allow_all = RoleChecker(["admin","user"])
+
+async def get_redis():
+    yield redis_client

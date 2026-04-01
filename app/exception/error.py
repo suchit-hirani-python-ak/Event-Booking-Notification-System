@@ -12,8 +12,8 @@ class NotFound(BaseException):
         super().__init__(message = message, status_code=404)
 
 class ServerError(BaseException):
-    def __init__(self):
-        super().__init__(message = "server side error", status_code = 500)
+    def __init__(self,message = "server side error"):
+        super().__init__(message = message, status_code = 500)
         
 class Unauthorized(BaseException):
     def __init__(self, message: str="email or password is wrong"):

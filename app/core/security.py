@@ -4,7 +4,6 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 import redis.asyncio as redis
 from app.core.config import settings
-from app.schemas.users import UserCreate, UserResponse
 
 redis_client = redis.from_url(settings.redis_url, decode_responses = True)
 
