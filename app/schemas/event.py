@@ -11,7 +11,6 @@ class EventRequest(BaseModel):
     location: str
     total_slots: int = Field(..., gt=0)
     available_slots: int = Field(..., ge=0) # Changed to ge=0 (slots can be 0)
-    created_by: PyObjectId
     # @model_validator(mode='after')
     # def check_slots(self) -> 'EventRequest':
     #     if self.available_slots > self.total_slots:

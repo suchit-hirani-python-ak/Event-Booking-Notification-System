@@ -20,7 +20,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: TokenResponse = Depends(get_current_user)):
-        if user.role != self.allowed_roles:
+        if user.role not in self.allowed_roles:
             raise Forbidden()
         return user
 
