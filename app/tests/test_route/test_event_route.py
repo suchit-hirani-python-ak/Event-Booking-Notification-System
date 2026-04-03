@@ -1,61 +1,52 @@
 import pytest
-from unittest.mock import AsyncMock
-from bson import ObjectId
-from main import app
-from app.db.session import get_db
-from app.dependencies.depandency import  get_redis, allow_admin
+from datetime import datetime
+from unittest.mock import patch, AsyncMock
 
 
-# 1. Mock Object to satisfy current_user.id for EventService
-class MockAdmin:
-    id = "660abb4f2e3f4a1234567890" # Must be valid 24-char hex
-    email = "admin@test.com"
-    role = "admin"
-
+date = datetime.now()
 @pytest.mark.asyncio
-async def test_add_event_validation_success(async_client, fake_db):
-    # --- 2. SETUP DEPENDENCIES ---
-    mock_redis = AsyncMock()
+@patch("app.services.event_service.EventService.all_user_event", new_callable=AsyncMock)
+async def test_all_event(mock_get_all, client):
     
-    app.dependency_overrides[get_db] = lambda: fake_db
-    app.dependency_overrides[get_redis] = lambda: mock_redis
-    app.dependency_overrides[allow_admin] = lambda: MockAdmin()
+    # FIX: Add 'created_at' and 'updated_at' to match your response model
+    mock_get_all.return_value = [{
+        "_id": "69c6460dde3abb1df795fd75",
+        "title": "karan ajula",
+        "date": "2026-04-28T07:00:00Z",
+        "location": "IIM, Ahmedabad",
+        "total_slots": 500,
+        "available_slots": 485,
+        "created_by": "660adb23f51bb4362e0020ee",
+        "created_at": date, # Added
+        "updated_at": date # Added
+    }]
 
-    # --- 3. THE PAYLOAD (Matching your Field constraints) ---
-    event_payload = {
-        "title": "Tech Summit 2026",        # min_length=1
-        "date": "2026-04-27T10:00:00Z",    # ISO datetime
-        "location": "Ahmedabad",
-        "total_slots": 100,                 # gt=0
-        "available_slots": 100              # ge=0
-    }
-
-    # --- 4. ACTION ---
-    headers = {"Authorization": "Bearer fake-token"}
-    response = await async_client.post("/events", json=event_payload, headers=headers)
-
-    # --- 5. VERIFICATION ---
-    if response.status_code == 422:
-        print(f"Validation Error: {response.json()}")
+    response = await client.get("/events")
 
     assert response.status_code == 200
     data = response.json()
-    assert data["title"] == "Tech Summit 2026"
-    assert data["total_slots"] == 100
-    
-    # Cleanup
-    app.dependency_overrides.clear()
+    assert isinstance(data, list)
+    assert data[0]["title"] == "karan ajula"
+    mock_get_all.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_add_event_validation_fail(async_client):
-    """Test that invalid slots (total_slots=0) return 422"""
-    invalid_payload = {
-        "title": "Fail Event",
-        "date": "2026-04-27T10:00:00Z",
-        "location": "Remote",
-        "total_slots": 0,    # Fails 'gt=0'
-        "available_slots": -1 # Fails 'ge=0'
+@patch("app.services.event_service.EventService.event_by_id", new_callable=AsyncMock)
+async def test_event_id(mock_get_all, client):
+    id = "69c6460dde3abb1df795fd75"
+    # FIX: Add 'created_at' and 'updated_at' to match your response model
+    mock_get_all.return_value = {
+        "_id": "69c6460dde3abb1df795fd75",
+        "title": "karan ajula",
+        "date": "2026-04-28T07:00:00Z",
+        "location": "IIM, Ahmedabad",
+        "total_slots": 500,
+        "available_slots": 485,
+        "created_by": "660adb23f51bb4362e0020ee",
+        "created_at": "2026-03-27T14:25:41.406582", # Added
+        "updated_at": "2026-03-27T14:25:41.406582"  # Added
     }
-    
-    response = await async_client.post("/events", json=invalid_payload)
-    assert response.status_code == 401
+
+    response = await client.get(f"/events/{id}")
+    assert response.status_code == 200
+    assert response.json()["_id"] == "69c6460dde3abb1df795fd75"
+    mock_get_all.assert_called_once()

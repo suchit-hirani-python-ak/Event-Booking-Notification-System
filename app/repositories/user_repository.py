@@ -2,8 +2,6 @@ from app.core.config import settings
 from pymongo.asynchronous.database import AsyncDatabase
 from bson import ObjectId
 
-from app.exception.error import Forbidden
-from app.schemas.users import UserResponse
 
 
 class UserRepository:

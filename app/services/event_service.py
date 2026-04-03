@@ -45,7 +45,9 @@ class EventService:
     
     async def event_by_id(self, id: str):
         cache_key = f"event:{id}"
-        
+        if len(id) < 24:
+            raise BadRequest("size is less than 24")
+            
         # 1. Check Cache
         cached = await self.cache.get_cache(cache_key)
         if cached: return cached
