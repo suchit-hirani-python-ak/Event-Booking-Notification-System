@@ -108,6 +108,7 @@ def send_booking_notification_task(self, email: str, booking_id: str):
         # Only one asyncio.run call per task execution
         return asyncio.run(async_task_wrapper(email, booking_id))
     except Exception as exc:
+        raise self.retry(exc=exc, countdown=600, max_retries=2)
 
     
 @celery_app.task(name="create_log_task")
