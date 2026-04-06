@@ -1,4 +1,8 @@
 from datetime import datetime, timedelta
+
+
+from pydantic import SecretStr
+
 from app.core.config import settings
 import jwt
 from pymongo.asynchronous.database import AsyncDatabase
@@ -58,12 +62,22 @@ class UserService:
                     raise Forbidden("Too many attempts. Locked for 10 min.")
                     
                 raise Unauthorized(f"Invalid credentials. {5 - failed_count} attempts left.")
+            
+            
 
             
             await redis_client.delete(attempts_key)
 
             tokens = generate_tokens(user)
-            
+            response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=False, 
+            samesite="lax",
+            max_age=(settings.refresh_expire_in_days* 24 * 60 + 330) * 60
+        )
+        
             return tokens
         
     async def refresh_token(self, refresh_token: str):
@@ -92,9 +106,10 @@ class UserService:
         return generate_tokens(user)
     
 
-    async def register_admin(self, user_in: UserCreate, secret_name: str, secret_pass: str):
+    async def register_admin(self, user_in: UserCreate, secret_name: SecretStr, secret_pass: SecretStr):
         # 1. Verify against .env secrets
-        if secret_name != settings.admin_name or secret_pass != settings.admin_pass:
+        if (secret_name.get_secret_value() != settings.admin_name.get_secret_value() or 
+            secret_pass.get_secret_value() != settings.admin_pass.get_secret_value()):
             raise Forbidden()
 
         # 2. Check if exists

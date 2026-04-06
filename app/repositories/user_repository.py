@@ -2,8 +2,6 @@ from app.core.config import settings
 from pymongo.asynchronous.database import AsyncDatabase
 from bson import ObjectId
 
-from app.exception.error import Forbidden
-from app.schemas.users import UserResponse
 
 
 class UserRepository:
@@ -21,8 +19,6 @@ class UserRepository:
     async def find_by_id(self,user_id: str):
         return await self.collection.find_one({"_id":ObjectId(user_id)})
     
-    async def admin_data(self,user:dict):
-        return await self.collection.find_one(user)
     
     async def remove_user(self,user_id: str) -> bool:
         result = await self.collection.delete_one({"_id": ObjectId(user_id)})

@@ -5,6 +5,7 @@ from app.db.session import db_manager, get_db
 from app.core.config import settings
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from app.core.config import settings
+from app.repositories.log_repository import LogRepository
 from app.repositories.notification_repository import NotificationRepository
 from app.utils.retrynotification import retry
 
@@ -41,7 +42,6 @@ conf = ConnectionConfig(
 
 @celery_app.task(name="send_welcome_email_task")
 def send_welcome_email_task(email: str):
-    # Professional HTML Email Template
 
     user_name = email.split('@')[0]
     message = MessageSchema(
@@ -85,7 +85,7 @@ async def async_task_wrapper(email: str, booking_id: str):
     await db_manager.connect_to_mongo()
     
     try:
-        # 2. Get the DB instance (Replaces db = Depends(get_db))
+
         db = await get_db() 
         
         # 3. Inject it into your repository
@@ -108,4 +108,20 @@ def send_booking_notification_task(self, email: str, booking_id: str):
         # Only one asyncio.run call per task execution
         return asyncio.run(async_task_wrapper(email, booking_id))
     except Exception as exc:
-        raise self.retry(exc=exc, countdown=600, max_retries=2)
+
+    
+@celery_app.task(name="create_log_task")
+def create_log_task(log_data: dict):
+    """Entry point for Celery to run the async log logic"""
+    return asyncio.run(async_log_wrapper(log_data))
+
+async def async_log_wrapper(log_data: dict):
+
+    
+    await db_manager.connect_to_mongo()
+    try:
+        db = await get_db()
+        repo = LogRepository(db)
+        return await repo.create_log(log_data)
+    finally:
+        await db_manager.close_mongo_connection()

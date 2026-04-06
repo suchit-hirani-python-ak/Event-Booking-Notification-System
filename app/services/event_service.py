@@ -3,7 +3,6 @@ from bson import ObjectId
 import json
 from redis.asyncio import Redis
 from pymongo.asynchronous.database import AsyncDatabase
-from app.dependencies.depandency import get_current_user
 from app.exception.error import BadRequest, Forbidden, NotFound
 from app.repositories.event_repository import EventRepository
 from app.schemas.event import EventRequest
@@ -17,6 +16,8 @@ class EventService:
         self.cache = RedisHelper(redis) # Use the helper
         
     async def create_event_for_user(self, payload: EventRequest, current_user: TokenResponse):
+        if payload.available_slots < 0 or payload.total_slots < 0:
+            raise BadRequest("value cannot be negative")
         if payload.available_slots > payload.total_slots:
             raise BadRequest("available slots cannot exceed total slots")
         
@@ -26,6 +27,7 @@ class EventService:
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         })
+        print(event_data)
         
         new_event = await self.repo.create_event(event_data)
         await self.cache.delete_cache("events:list")
@@ -43,7 +45,9 @@ class EventService:
     
     async def event_by_id(self, id: str):
         cache_key = f"event:{id}"
-        
+        if len(id) < 24:
+            raise BadRequest("size is less than 24")
+            
         # 1. Check Cache
         cached = await self.cache.get_cache(cache_key)
         if cached: return cached

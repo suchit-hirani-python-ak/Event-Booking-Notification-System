@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     mail_password: SecretStr
     mail_from: str
     mail_port: int
-    admin_name: str
-    admin_pass: str
+    admin_name: SecretStr
+    admin_pass: SecretStr
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"
