@@ -16,7 +16,19 @@ router = APIRouter()
 
 
 @router.get("/me",response_model=List[BookingResponse])
-async def get_my_bookings(db:Annotated[AsyncDatabase,Depends(get_db)], user: Annotated[TokenResponse,Depends(get_current_user)],redis: Annotated[Redis, Depends(get_redis)],):
+async def get_my_bookings(db:Annotated[AsyncDatabase,Depends(get_db)],
+                          user: Annotated[TokenResponse,Depends(get_current_user)],
+                          redis: Annotated[Redis, Depends(get_redis)])-> List[dict]:
+    """ finds all booking of user by db,redis,current_user
+
+    Args:
+        db (Annotated[AsyncDatabase,Depends): connection with db with get_db
+        user (Annotated[TokenResponse,Depends): checks current_user token
+        redis (Annotated[Redis, Depends): connection with redis using get_redis
+
+    Returns:
+        List[dict]: all booking done by user
+    """
     return await BookingService(db,redis).all_booking(user)
     
 
@@ -24,5 +36,16 @@ async def get_my_bookings(db:Annotated[AsyncDatabase,Depends(get_db)], user: Ann
 async def register_booking(db:Annotated[AsyncDatabase,Depends(get_db)],
                      id: str,
                      token:Annotated[TokenResponse,Depends(get_current_user)],
-                     redis: Annotated[Redis, Depends(get_redis)],):
+                     redis: Annotated[Redis, Depends(get_redis)],)-> dict:
+    """Using id it will register event booking
+
+    Args:
+        db (Annotated[AsyncDatabase,Depends): connection with db with get_db
+        id (str): takes event id as argument
+        token (Annotated[TokenResponse,Depends): checks current_user token
+        redis (Annotated[Redis, Depends): connection with redis using get_redis
+
+    Returns:
+       dict: return data of event and other details 
+    """
     return await BookingService(db,redis).register_booking(id,token)

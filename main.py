@@ -1,3 +1,4 @@
+import uvicorn
 from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import Depends, FastAPI, Request
@@ -5,9 +6,8 @@ from fastapi.responses import JSONResponse
 from app.db.session import db_manager,get_db
 from app.api import booking_route, event_route, user_route
 from app.exception.error import BaseException
-from app.middleware.request_logs import Middleware
-import uvicorn
-
+from app.middleware.ratelimiting import sliding_window_rate_limiter
+from app.middleware.request_logs import log_requests_middleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,14 +23,9 @@ async def lifespan(app: FastAPI):
 
 # 2. Pass the lifespan to the FastAPI app
 app = FastAPI(lifespan=lifespan)
+app.middleware("http")(sliding_window_rate_limiter)
+app.middleware("http")(log_requests_middleware)
 
-# 1. Initialize your middleware class
-mw = Middleware()
-
-# 2. Register the specific method as a middleware function
-@app.middleware("http")
-async def logging_wrapper(request: Request, call_next):
-    return await mw.log_requests_middleware(request, call_next)
 
 app.include_router(user_route.router,prefix="/auth",tags=["Authentication"])
 app.include_router(event_route.router,prefix="/events",tags=["event"])

@@ -20,9 +20,9 @@ class BookingService:
         existing = await self.repo.check_existing_booking(event_id, user.id)
         if existing:
             raise BadRequest("You have already registered for this event")
-
         # 2. Atomic Slot Reservation (DB Truth)
         event = await self.repo.find_and_decrement_slot(event_id)
+        
         if not event:
             raise BadRequest("Event is full or does not exist")
         

@@ -1,80 +1,76 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from bson import ObjectId
 from app.repositories.user_repository import UserRepository
 
 @pytest.mark.asyncio
-async def test_create_user_repo():
-    # 1. Mock the MongoDB Collection
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-
-    # 2. Initialize Repo
-    repo = UserRepository(mock_db)
-    
-    # 3. Setup Mock Behavior
-    mock_result = MagicMock()
-    mock_result.inserted_id = ObjectId("660adb23f51bb4362e0020ee")
-    mock_collection.insert_one.return_value = mock_result
-
+async def test_create_user_repo(db):
+    repo = UserRepository(db)
     user_data = {"email": "test@gmail.com", "password": "hashed_password"}
 
-    # 4. Execute
+    # 1. Execute
     result = await repo.create_user(user_data)
 
-    # 5. Assertions
-    # Check if the result contains the string version of the ID
-    assert result["_id"] == "660adb23f51bb4362e0020ee"
-    # Verify the EXACT MongoDB command was sent
-    mock_collection.insert_one.assert_called_once_with(user_data)
+    # 2. Assertions
+    assert "_id" in result
+    # assert isinstance(result["_id"], str)
+    
+    # 3. Verify in Real DB
+    found = await db.users.find_one({"email": "test@gmail.com"})
+    assert found is not None
+    assert str(found["_id"]) == result["_id"]
 
 @pytest.mark.asyncio
-async def test_find_by_id_repo():
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-    repo = UserRepository(mock_db)
+async def test_find_by_id_repo(db):
+    repo = UserRepository(db)
+    
+    # Seed data directly into the test DB
+    inserted = await db.users.insert_one({"email": "find_me@test.com"})
+    test_id = str(inserted.inserted_id)
 
-    test_id = "660adb23f51bb4362e0020ee"
-    mock_collection.find_one.return_value = {"_id": ObjectId(test_id), "email": "test@test.com"}
-
+    # Execute
     result = await repo.find_by_id(test_id)
 
-    # Verify that the string ID was correctly converted to an ObjectId for the query
-    mock_collection.find_one.assert_called_once_with({"_id": ObjectId(test_id)})
-    assert result["email"] == "test@test.com" #type: ignore
+    assert result is not None
+    assert result["email"] == "find_me@test.com"
+    # Ensure the repo returns a dict or object as expected
+    assert str(result["_id"]) == test_id
+
+@pytest.mark.asyncio
+async def test_find_by_email_repo(db):
+    repo = UserRepository(db)
     
-@pytest.mark.asyncio
-async def test_find_by_email_repo():
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-    repo = UserRepository(mock_db)
+    email = "kimber@gmail.com"
+    await db.users.insert_one({"email": email})
 
-    test_id = "kimber@gmail.com"
-    mock_collection.find_one.return_value = {"email": "kimber@gmail.com"}
+    # Execute
+    result = await repo.find_by_email(email)
 
-    result = await repo.find_by_email(test_id)
-
-    # Verify that the string ID was correctly converted to an ObjectId for the query
-    mock_collection.find_one.assert_called_once_with({"email":"kimber@gmail.com"})
-    assert result["email"] == "kimber@gmail.com" #type: ignore
+    assert result is not None
+    assert result["email"] == email
 
 @pytest.mark.asyncio
-async def test_remove_user_repo_success():
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-    repo = UserRepository(mock_db)
+async def test_remove_user_repo_success(db):
+    repo = UserRepository(db)
+    
+    # Seed data
+    inserted = await db.users.insert_one({"email": "delete_me@test.com"})
+    test_id = str(inserted.inserted_id)
 
-    # 6. Mock a successful deletion
-    mock_result = MagicMock()
-    mock_result.deleted_count = 1
-    mock_collection.delete_one.return_value = mock_result
-
-    test_id = "660adb23f51bb4362e0020ee"
+    # Execute
     success = await repo.remove_user(test_id)
 
+    # Assertions
     assert success is True
-    mock_collection.delete_one.assert_called_once_with({"_id": ObjectId(test_id)})
+    # Verify deletion from actual DB
+    remaining = await db.users.find_one({"_id": ObjectId(test_id)})
+    assert remaining is None
+
+@pytest.mark.asyncio
+async def test_remove_user_repo_fail(db):
+    repo = UserRepository(db)
+    
+    # Attempt to delete a non-existent ID
+    fake_id = str(ObjectId())
+    success = await repo.remove_user(fake_id)
+
+    assert success is False

@@ -16,8 +16,7 @@ async def test_create_event(admin_client):
 
     headers = {"Authorization": "Bearer fake-token"}
 
-    # 1. Patch the METHOD, not the CLASS.
-    # 2. Assign the mock to 'mock_create' using 'as'
+
     with patch("app.services.event_service.EventService.create_event_for_user", new_callable=AsyncMock) as mock_create:
         
         mock_create.return_value = {
@@ -67,9 +66,6 @@ async def test_update_event(admin_client):
             "updated_at": "2026-03-27T15:50:03.827577"
         }
 
-        # 2. FIX: Use 'put' or 'patch' (whichever your route uses)
-        # 3. FIX: Put the event_id directly into the URL string
-        # 4. FIX: Use the plural prefix "/events" from your main.py
         response = await admin_client.put(f"/events/{event_id}", json=payload, headers=headers)
 
         assert response.status_code == 200

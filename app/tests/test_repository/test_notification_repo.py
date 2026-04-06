@@ -1,54 +1,57 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.repositories.notification_repository import NotificationRepository
 
 @pytest.mark.asyncio
-async def test_log_notification_upsert():
-    # 1. Setup Mocks
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-    repo = NotificationRepository(mock_db)
-
+async def test_log_notification_upsert_real_db(db):
+    # 1. Setup Repo with real DB (Assuming collection name is "Notifications")
+    repo = NotificationRepository(db)
+    
     booking_id = "660adb23f51bb4362e0020ee"
     email = "test@gmail.com"
-    status = "sent"
-    attempt = 1
+    
+    # 2. First execution: This should trigger an INSERT (upsert)
+    await repo.log_notification(booking_id, email, "sent", 1)
 
-    # 2. Execute
-    await repo.log_notification(booking_id, email, status, attempt)
+    # 3. Verify it exists in the real DB
+    # Note: Use the exact case "Notifications" or "notifications" from your repo
+    record = await db["Notification"].find_one({"booking_id": ObjectId(booking_id)})
+    
+    assert record is not None
+    assert record["status"] == "sent"
+    assert record["attempts"] == 1
+    assert "created_at" in record
+    
+    first_created_at = record["created_at"]
 
-    # 3. Assertions: Verify the ATOMIC operators ($set and $setOnInsert)
-    # Verify the filter uses ObjectId
-    expected_query = {"booking_id": ObjectId(booking_id)}
+    # 4. Second execution: Simulate a RETRY (update)
+    # This should update status/attempts but NOT overwrite created_at
+    await repo.log_notification(booking_id, email, "failed", 2)
     
-    # Verify the update document structure
-    args, kwargs = mock_collection.update_one.call_args
+    updated_record = await db["Notification"].find_one({"booking_id": ObjectId(booking_id)})
     
-    assert args[0] == expected_query
-    assert "$set" in args[1]
-    assert args[1]["$set"]["status"] == "sent"
-    assert args[1]["$set"]["attempts"] == 1
-    
-    # Verify $setOnInsert exists and upsert is True
-    assert "$setOnInsert" in args[1]
-    assert "created_at" in args[1]["$setOnInsert"]
-    assert kwargs["upsert"] is True
+    assert updated_record["status"] == "failed"
+    assert updated_record["attempts"] == 2
+    # CRITICAL: created_at must remain the same because of $setOnInsert
+    assert updated_record["created_at"] == first_created_at
 
 @pytest.mark.asyncio
-async def test_log_notification_retry_update():
-    mock_collection = AsyncMock()
-    mock_db = MagicMock()
-    mock_db.get_collection.return_value = mock_collection
-    repo = NotificationRepository(mock_db)
-
+async def test_log_notification_retry_update_real_db(db):
+    repo = NotificationRepository(db)
     booking_id = "660adb23f51bb4362e0020ee"
     
-    # Simulate a RETRY (attempt 2, status failed)
+    # Seed an existing record
+    await db["Notification"].insert_one({
+        "booking_id": ObjectId(booking_id),
+        "status": "pending",
+        "attempts": 0
+    })
+
+    # Execute retry update via repo
     await repo.log_notification(booking_id, "test@gmail.com", "failed", 2)
 
-    args, _ = mock_collection.update_one.call_args
-    assert args[1]["$set"]["attempts"] == 2
-    assert args[1]["$set"]["status"] == "failed"
+    # Verify atomic update
+    result = await db["Notification"].find_one({"booking_id": ObjectId(booking_id)})
+    assert result["status"] == "failed"
+    assert result["attempts"] == 2

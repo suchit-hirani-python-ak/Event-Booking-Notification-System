@@ -23,7 +23,6 @@ class DatabaseManager:
         if self.client:
             await self.client.close()
             print("Closed MongoDB connection")
-# Create a single instance to be imported elsewhere
 db_manager = DatabaseManager()
 
 async def get_db():

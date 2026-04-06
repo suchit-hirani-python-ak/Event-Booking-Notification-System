@@ -1,4 +1,5 @@
 from jwt import ExpiredSignatureError
+from pydantic import SecretStr
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.exception.error import BadRequest, Forbidden, NotFound, Unauthorized
@@ -63,7 +64,7 @@ async def test_login_success():
     # Path to where redis_client is imported in your service
     with patch("app.services.user_service.redis_client", mock_redis), \
          patch("app.services.user_service.verify_password", return_value=True), \
-         patch("app.services.user_service.generate_tokens", return_value={"access_token": "abc"}):
+         patch("app.services.user_service.generate_tokens", return_value={"refresh_token": "abc"}):
         
         service = UserService(db=AsyncMock())
         service.repo = mock_repo
@@ -81,7 +82,7 @@ async def test_login_success():
         result = await service.login_user(payload, MagicMock())
 
         # 5. Assertions
-        assert result["access_token"] == "abc"
+        assert result["refresh_token"] == "abc"
         mock_redis.delete.assert_called_once_with(f"attempts:test@gmail.com")
 
 @pytest.mark.asyncio
@@ -164,7 +165,7 @@ async def test_register_admin_wrong_secrets():
     
     # 3. Call with wrong secrets should raise Forbidden
     with pytest.raises(Forbidden):
-        await service.register_admin(MagicMock(), "wrong_user", "wrong_pass")
+        await service.register_admin(MagicMock(), SecretStr("wrong_user"), SecretStr("wrong_pass"))
 
 @pytest.mark.asyncio
 async def test_delete_account_success():
