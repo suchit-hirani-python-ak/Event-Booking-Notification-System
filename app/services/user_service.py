@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 
+
 from pydantic import SecretStr
+
 from app.core.config import settings
 import jwt
 from pymongo.asynchronous.database import AsyncDatabase
